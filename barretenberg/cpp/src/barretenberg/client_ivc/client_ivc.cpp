@@ -194,6 +194,14 @@ ClientIVC::perform_recursive_verification_and_databus_consistency_checks(
         kernel_input.kernel_return_data.assert_equal(witness_commitments.calldata);
         kernel_input.app_return_data.assert_equal(witness_commitments.secondary_calldata);
 
+        BB_ASSERT_EQ(verifier_inputs.type == QUEUE_TYPE::PG || verifier_inputs.type == QUEUE_TYPE::PG_TAIL,
+                     true,
+                     "Kernel circuits should be folded.");
+        // Get the previous accum hash
+        RecursiveTranscript hash_transcript;
+        kernel_input.output_pg_accum_hash.assert_equal(
+            stdlib_verifier_accumulator->hash_through_transcript("", hash_transcript));
+
         // Set the kernel return data commitment to be propagated via the public inputs
         bus_depot.set_kernel_return_data_commitment(witness_commitments.return_data);
     } else {
