@@ -128,7 +128,7 @@ export class TXE {
   private msgSender: AztecAddress;
   private functionSelector = FunctionSelector.fromField(new Fr(0));
 
-  private pxeOracleInterface: PXEOracleInterface;
+  public pxeOracleInterface: PXEOracleInterface;
 
   private publicDataWrites: PublicDataWrite[] = [];
   private uniqueNoteHashesFromPublic: Fr[] = [];

@@ -75,7 +75,7 @@ export class TXEService {
     return toForeignCallResult([]);
   }
 
-  txeSetPrivateTXEContext() {
+  async txeSetPrivateTXEContext() {
     if (this.contextChecksEnabled) {
       if (this.context != TXEContext.TOP_LEVEL) {
         throw new Error(`Call to txeSetPrivateTXEContext while in context ${TXEContext[this.context]}`);
@@ -83,6 +83,15 @@ export class TXEService {
     }
 
     this.context = TXEContext.PRIVATE;
+
+    // There is no automatic message discovery and contract-driven syncing process in inlined private contexts, which
+    // means that known nullifiers are also not searched for, since it is during the tagging sync that we perform this.
+    // We therefore search for known nullifiers now, as otherwise notes that were nullified would not be removed from
+    // the database.
+    // TODO(#12553): make this be part of the TXE private/utility PXE oracle interface creation process when switching
+    // contexts
+    await this.txe.pxeOracleInterface.removeNullifiedNotes(await this.txe.utilityGetContractAddress());
+
     return toForeignCallResult([]);
   }
 
@@ -97,7 +106,7 @@ export class TXEService {
     return toForeignCallResult([]);
   }
 
-  txeSetUtilityTXEContext() {
+  async txeSetUtilityTXEContext() {
     if (this.contextChecksEnabled) {
       if (this.context != TXEContext.TOP_LEVEL) {
         throw new Error(`Call to txeSetUtilityTXEContext while in context ${TXEContext[this.context]}`);
@@ -105,6 +114,15 @@ export class TXEService {
     }
 
     this.context = TXEContext.UTILITY;
+
+    // There is no automatic message discovery and contract-driven syncing process in inlined private contexts, which
+    // means that known nullifiers are also not searched for, since it is during the tagging sync that we perform this.
+    // We therefore search for known nullifiers now, as otherwise notes that were nullified would not be removed from
+    // the database.
+    // TODO(#12553): make this be part of the TXE private/utility PXE oracle interface creation process when switching
+    // contexts
+    await this.txe.pxeOracleInterface.removeNullifiedNotes(await this.txe.utilityGetContractAddress());
+
     return toForeignCallResult([]);
   }
 
