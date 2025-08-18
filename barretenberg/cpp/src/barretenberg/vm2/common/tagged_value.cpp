@@ -104,6 +104,7 @@ template <typename Op> struct BinaryOperationVisitor {
 };
 
 // Helper visitor for shift operations. The right hand side is a different type.
+// TODO(MW): remove? We now use the same LHS and RHS type for shifts
 template <typename Op> struct ShiftOperationVisitor {
     template <typename T, typename U> TaggedValue::value_type operator()(const T& a, const U& b) const
     {
@@ -309,12 +310,12 @@ TaggedValue TaggedValue::operator~() const
 // Shift Operations
 TaggedValue TaggedValue::operator<<(const TaggedValue& other) const
 {
-    return std::visit(ShiftOperationVisitor<shift_left>(), value, other.value);
+    return std::visit(BinaryOperationVisitor<shift_left>(), value, other.value);
 }
 
 TaggedValue TaggedValue::operator>>(const TaggedValue& other) const
 {
-    return std::visit(ShiftOperationVisitor<shift_right>(), value, other.value);
+    return std::visit(BinaryOperationVisitor<shift_right>(), value, other.value);
 }
 
 // Comparison Operators
