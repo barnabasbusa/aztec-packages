@@ -215,6 +215,11 @@ export class TXEService {
 
   // PXE oracles
 
+  utilityAssertOracleVersionMatches(version: ForeignCallSingle) {
+    this.txe.utilityAssertOracleVersionMatches(fromSingle(version).toNumber());
+    return toForeignCallResult([]);
+  }
+
   utilityGetRandomField() {
     if (this.contextChecksEnabled && this.context == TXEContext.TOP_LEVEL) {
       throw new Error(
