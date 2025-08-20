@@ -43,8 +43,8 @@ describe.skip('AVM WitGen & Circuit – check circuit', () => {
   //   },
   //   TIMEOUT,
   // );
-  // FIXME(dbanks12): fails with "Lookup PERM_MAIN_ALU failed."
-  it.skip('top-level exceptional halts due to a non-existent contract in app-logic and teardown', async () => {
+
+  it('top-level exceptional halts due to a non-existent contract in app-logic and teardown', async () => {
     // don't insert contracts into trees, and make sure retrieval fails
     const tester = await AvmProvingTester.new(/*checkCircuitOnly=*/ true);
     await tester.simProveVerify(
@@ -61,6 +61,7 @@ describe.skip('AVM WitGen & Circuit – check circuit', () => {
       /*expectRevert=*/ true,
     );
   });
+
   it(
     'enqueued calls in every phase, with enqueued calls that depend on each other',
     async () => {

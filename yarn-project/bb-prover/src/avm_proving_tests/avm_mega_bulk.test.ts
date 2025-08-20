@@ -1,19 +1,19 @@
 import { createLogger } from '@aztec/foundation/log';
-import { TestExecutorMetrics, defaultGlobals, tokenTest } from '@aztec/simulator/public/fixtures';
+import { TestExecutorMetrics, defaultGlobals, megaBulkTest } from '@aztec/simulator/public/fixtures';
 
 import { mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import { AvmProvingTester } from './avm_proving_tester.js';
 
-const TIMEOUT = 300_000;
+const TIMEOUT = 180_000;
 
-describe('AVM proven TokenContract', () => {
-  const logger = createLogger('avm-proven-tests-token');
+describe('AVM proven MEGA bulk test', () => {
+  const logger = createLogger('avm-proven-bulk-test');
   const metrics = new TestExecutorMetrics();
   let tester: AvmProvingTester;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     // FULL PROVING! Not check-circuit.
     tester = await AvmProvingTester.new(/*checkCircuitOnly=*/ false, /*globals=*/ defaultGlobals(), metrics);
   });
@@ -31,9 +31,9 @@ describe('AVM proven TokenContract', () => {
   });
 
   it(
-    'token operations: constructor, mint, transfer, burn, check balances',
+    'Prove and verify mega bulk test',
     async () => {
-      await tokenTest(tester, logger, (b: boolean) => expect(b).toBe(true));
+      await megaBulkTest(tester, logger, (b: boolean) => expect(b).toBe(true));
     },
     TIMEOUT,
   );

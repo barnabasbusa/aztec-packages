@@ -141,7 +141,16 @@ export class PublicTxSimulationTester extends BaseAvmSimulationTester {
     return avmResult;
   }
 
-  public async simulateTxWithLabel(
+  /**
+   * Execute a transaction and return the result.
+   * This is a wrapper around simulateTx that allows for easy labeling of a TX
+   * which is especially useful when reporting benchmarks or metrics.
+   *
+   * This function can be (it is) overridden by a subclass (AvmProvingTester)
+   * to do more work (like prove and verify) while still reusing existing
+   * test fixtures (like amm_test). That is why it is not named "simulate*".
+   */
+  public async executeTxWithLabel(
     txLabel: string,
     sender: AztecAddress,
     setupCalls?: TestEnqueuedCall[],

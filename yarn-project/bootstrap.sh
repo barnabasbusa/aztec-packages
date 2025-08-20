@@ -171,6 +171,10 @@ function bench_cmds {
   echo "$hash BENCH_OUTPUT=bench-out/tx.bench.json yarn-project/scripts/run_test.sh stdlib/src/tx/tx_bench.test.ts"
   echo "$hash:ISOLATE=1:CPUS=10:MEM=16g:LOG_LEVEL=silent BENCH_OUTPUT=bench-out/proving_broker.bench.json yarn-project/scripts/run_test.sh prover-client/src/test/proving_broker_testbench.test.ts"
   echo "$hash:ISOLATE=1:CPUS=16:MEM=16g BENCH_OUTPUT=bench-out/avm_bulk_test.bench.json yarn-project/scripts/run_test.sh bb-prover/src/avm_proving_tests/avm_bulk.test.ts"
+  echo "$hash:ISOLATE=1:CPUS=16:MEM=16g BENCH_OUTPUT=bench-out/avm_mega_bulk.bench.json yarn-project/scripts/run_test.sh bb-prover/src/avm_proving_tests/avm_mega_bulk.test.ts"
+  echo "$hash:ISOLATE=1:CPUS=16:MEM=16g BENCH_OUTPUT=bench-out/avm_proven_token_test.bench.json yarn-project/scripts/run_test.sh bb-prover/src/avm_proving_tests/avm_proven_token.test.ts"
+  echo "$hash:ISOLATE=1:CPUS=16:MEM=16g BENCH_OUTPUT=bench-out/avm_proven_amm_test.bench.json yarn-project/scripts/run_test.sh bb-prover/src/avm_proving_tests/avm_proven_amm.test.ts"
+  echo "$hash:ISOLATE=1:CPUS=16:MEM=16g BENCH_OUTPUT=bench-out/avm_proven_gadgets.bench.json yarn-project/scripts/run_test.sh bb-prover/src/avm_proving_tests/avm_proven_gadgets.test.ts"
 }
 
 function release_packages {
