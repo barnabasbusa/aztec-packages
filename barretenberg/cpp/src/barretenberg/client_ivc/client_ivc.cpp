@@ -113,12 +113,23 @@ ClientIVC::perform_recursive_verification_and_databus_consistency_checks(
 
     std::shared_ptr<ClientIVC::RecursiveDeciderVerificationKey> stdlib_verifier_accumulator;
 
+    std::optional<StdlibFF> prev_accum_hash = std::nullopt;
     switch (verifier_inputs.type) {
     case QUEUE_TYPE::PG_TAIL:
     case QUEUE_TYPE::PG: {
         // Construct stdlib verifier accumulator from the native counterpart computed on a previous round
         auto stdlib_verifier_accum =
             std::make_shared<RecursiveDeciderVerificationKey>(&circuit, recursive_verifier_native_accum);
+
+        if (verifier_inputs
+                .is_kernel) { // this is what I'm using to determine if this is the first circuit we're folding...
+            // Fiat-Shamir the accumulator.
+            // TODO(https://github.com/AztecProtocol/barretenberg/issues/1390): assert_equal on accumulator hash with
+            // public input hash.
+            prev_accum_hash = stdlib_verifier_accum->hash_through_transcript("", *accumulation_recursive_transcript);
+            accumulation_recursive_transcript->add_to_hash_buffer("accum_hash", *prev_accum_hash);
+            info("Previous accumulator hash in PG rec verifier: ", *prev_accum_hash);
+        }
 
         // Perform folding recursive verification to update the verifier accumulator
         FoldingRecursiveVerifier verifier{
@@ -145,11 +156,13 @@ ClientIVC::perform_recursive_verification_and_databus_consistency_checks(
         OinkRecursiveVerifier verifier{ &circuit, stdlib_verifier_accumulator, accumulation_recursive_transcript };
         verifier.verify_proof(verifier_inputs.proof);
 
+        stdlib_verifier_accumulator->target_sum = StdlibFF::from_witness_index(&circuit, circuit.zero_idx);
+        stdlib_verifier_accumulator->gate_challenges.assign(CONST_PG_LOG_N,
+                                                            StdlibFF::from_witness_index(&circuit, circuit.zero_idx));
+
         // Extract native verifier accumulator from the stdlib accum for use on the next round
         recursive_verifier_native_accum =
             std::make_shared<DeciderVerificationKey>(stdlib_verifier_accumulator->get_value());
-        // Initialize the gate challenges to zero for use in first round of folding
-        recursive_verifier_native_accum->gate_challenges = std::vector<FF>(CONST_PG_LOG_N, 0);
 
         witness_commitments = std::move(stdlib_verifier_accumulator->witness_commitments);
         public_inputs = std::move(verifier.public_inputs);
@@ -198,9 +211,9 @@ ClientIVC::perform_recursive_verification_and_databus_consistency_checks(
                      true,
                      "Kernel circuits should be folded.");
         // Get the previous accum hash
-        RecursiveTranscript hash_transcript;
-        kernel_input.output_pg_accum_hash.assert_equal(
-            stdlib_verifier_accumulator->hash_through_transcript("", hash_transcript));
+        info("PG accum hash from IO: ", kernel_input.output_pg_accum_hash);
+        ASSERT(prev_accum_hash.has_value());
+        kernel_input.output_pg_accum_hash.assert_equal(*prev_accum_hash);
 
         // Set the kernel return data commitment to be propagated via the public inputs
         bus_depot.set_kernel_return_data_commitment(witness_commitments.return_data);
@@ -297,11 +310,11 @@ void ClientIVC::complete_kernel_circuit_logic(ClientCircuit& circuit)
         kernel_output.kernel_return_data = bus_depot.get_kernel_return_data_commitment(circuit);
         kernel_output.app_return_data = bus_depot.get_app_return_data_commitment(circuit);
         kernel_output.ecc_op_tables = T_prev_commitments;
-
-        kernel_output.set_public();
         RecursiveTranscript hash_transcript;
-        StdlibFF output_accum_hash = output_stdlib_verifier_accumulator->hash_through_transcript("", hash_transcript);
-        output_accum_hash.set_public();
+        kernel_output.output_pg_accum_hash =
+            output_stdlib_verifier_accumulator->hash_through_transcript("", hash_transcript);
+        info("kernel output pg hash: ", kernel_output.output_pg_accum_hash);
+        kernel_output.set_public();
     }
 }
 
@@ -380,12 +393,24 @@ void ClientIVC::accumulate(ClientCircuit& circuit, const std::shared_ptr<MegaVer
         auto verifier_accumulation_transcript =
             Transcript::convert_prover_transcript_to_verifier_transcript(prover_accumulation_transcript);
 
+        if (is_kernel) {
+            // Fiat-Shamir the verifier accumulator
+            FF accum_hash = native_verifier_accum->hash_through_transcript("", *prover_accumulation_transcript);
+            prover_accumulation_transcript->add_to_hash_buffer("accum_hash", accum_hash);
+            info("Accumulator hash in PG prover: ", accum_hash);
+        }
         FoldingProver folding_prover({ fold_output.accumulator, proving_key },
                                      { native_verifier_accum, vk },
                                      prover_accumulation_transcript,
                                      trace_usage_tracker);
         fold_output = folding_prover.prove();
         vinfo("constructed folding proof");
+        if (is_kernel) {
+            // Fiat-Shamir the verifier accumulator
+            FF accum_hash = native_verifier_accum->hash_through_transcript("", *verifier_accumulation_transcript);
+            verifier_accumulation_transcript->add_to_hash_buffer("accum_hash", accum_hash);
+            info("Accumulator hash in PG verifier: ", accum_hash);
+        }
         FoldingVerifier folding_verifier({ native_verifier_accum, vk }, verifier_accumulation_transcript);
         native_verifier_accum = folding_verifier.verify_folding_proof(fold_output.proof);
 
@@ -459,6 +484,12 @@ std::pair<ClientIVC::PairingPoints, ClientIVC::TableCommitments> ClientIVC::comp
         stdlib_proof[i].set_public();
     }
 
+    // Fiat-Shamir the accumulator.
+    // TODO(https://github.com/AztecProtocol/barretenberg/issues/1390): assert_equal on accumulator hash with
+    // public input hash.
+    StdlibFF prev_accum_hash = stdlib_verifier_accumulator->hash_through_transcript("", *pg_merge_transcript);
+    pg_merge_transcript->add_to_hash_buffer("accum_hash", prev_accum_hash);
+    info("Previous accumulator hash in PG rec verifier: ", prev_accum_hash);
     // Perform recursive folding verification of the last folding proof
     FoldingRecursiveVerifier folding_verifier{
         &circuit, stdlib_verifier_accumulator, { stdlib_vk_and_hash }, pg_merge_transcript
@@ -487,6 +518,10 @@ std::pair<ClientIVC::PairingPoints, ClientIVC::TableCommitments> ClientIVC::comp
         goblin.recursively_verify_merge(circuit, merge_commitments, pg_merge_transcript);
 
     points_accumulator.aggregate(kernel_input.pairing_inputs);
+
+    // Get the previous accum hash
+    info("PG accum hash from IO: ", kernel_input.output_pg_accum_hash);
+    kernel_input.output_pg_accum_hash.assert_equal(prev_accum_hash);
 
     // Perform recursive decider verification
     DeciderRecursiveVerifier decider{ &circuit, output_stdlib_verifier_accumulator };
