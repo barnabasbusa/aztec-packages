@@ -292,6 +292,7 @@
     "sload",
     "snakecase",
     "socat",
+    "solhint",
     "squashable",
     "SSTORE",
     "starknet",
