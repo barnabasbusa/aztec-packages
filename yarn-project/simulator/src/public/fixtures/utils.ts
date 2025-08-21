@@ -1,9 +1,9 @@
 import {
+  AVM_MAX_PROCESSABLE_L2_GAS,
   CONTRACT_CLASS_PUBLISHED_MAGIC_VALUE,
   CONTRACT_CLASS_REGISTRY_CONTRACT_ADDRESS,
   CONTRACT_INSTANCE_REGISTRY_CONTRACT_ADDRESS,
-  DEFAULT_GAS_LIMIT,
-  MAX_L2_GAS_PER_TX_PUBLIC_PORTION,
+  DEFAULT_DA_GAS_LIMIT,
   PRIVATE_LOG_SIZE_IN_FIELDS,
 } from '@aztec/constants';
 import { padArrayEnd } from '@aztec/foundation/collection';
@@ -66,7 +66,7 @@ export async function createTxForPublicCalls(
     "Can't create public tx with no enqueued calls",
   );
   // use max limits
-  const gasLimits = new Gas(DEFAULT_GAS_LIMIT, MAX_L2_GAS_PER_TX_PUBLIC_PORTION);
+  const gasLimits = new Gas(DEFAULT_DA_GAS_LIMIT, AVM_MAX_PROCESSABLE_L2_GAS);
 
   const forPublic = PartialPrivateTailPublicInputsForPublic.empty();
 
@@ -160,7 +160,7 @@ export async function createTxForPrivateOnly(
   gasUsedByPrivate: Gas = new Gas(10, 10),
 ): Promise<Tx> {
   // use max limits
-  const gasLimits = new Gas(DEFAULT_GAS_LIMIT, MAX_L2_GAS_PER_TX_PUBLIC_PORTION);
+  const gasLimits = new Gas(DEFAULT_DA_GAS_LIMIT, AVM_MAX_PROCESSABLE_L2_GAS);
 
   const forRollup = PartialPrivateTailPublicInputsForRollup.empty();
 

@@ -1,9 +1,9 @@
 import { type AztecNode, Body, L2Block, Note } from '@aztec/aztec.js';
 import {
-  DEFAULT_GAS_LIMIT,
-  DEFAULT_TEARDOWN_GAS_LIMIT,
+  AVM_MAX_PROCESSABLE_L2_GAS,
+  DEFAULT_DA_GAS_LIMIT,
+  DEFAULT_TEARDOWN_DA_GAS_LIMIT,
   type L1_TO_L2_MSG_TREE_HEIGHT,
-  MAX_L2_GAS_PER_TX_PUBLIC_PORTION,
   MAX_NOTE_HASHES_PER_TX,
   MAX_NULLIFIERS_PER_TX,
   NULLIFIER_SUBTREE_HEIGHT,
@@ -941,9 +941,9 @@ export class TXE {
 
     const callContext = new CallContext(from, targetContractAddress, functionSelector, isStaticCall);
 
-    const gasLimits = new Gas(DEFAULT_GAS_LIMIT, MAX_L2_GAS_PER_TX_PUBLIC_PORTION);
+    const gasLimits = new Gas(DEFAULT_DA_GAS_LIMIT, AVM_MAX_PROCESSABLE_L2_GAS);
 
-    const teardownGasLimits = new Gas(DEFAULT_TEARDOWN_GAS_LIMIT, MAX_L2_GAS_PER_TX_PUBLIC_PORTION);
+    const teardownGasLimits = new Gas(DEFAULT_TEARDOWN_DA_GAS_LIMIT, AVM_MAX_PROCESSABLE_L2_GAS);
 
     const gasSettings = new GasSettings(gasLimits, teardownGasLimits, GasFees.empty(), GasFees.empty());
 
@@ -1141,9 +1141,9 @@ export class TXE {
       )}@${targetContractAddress} isStaticCall=${isStaticCall}`,
     );
 
-    const gasLimits = new Gas(DEFAULT_GAS_LIMIT, MAX_L2_GAS_PER_TX_PUBLIC_PORTION);
+    const gasLimits = new Gas(DEFAULT_DA_GAS_LIMIT, AVM_MAX_PROCESSABLE_L2_GAS);
 
-    const teardownGasLimits = new Gas(DEFAULT_TEARDOWN_GAS_LIMIT, MAX_L2_GAS_PER_TX_PUBLIC_PORTION);
+    const teardownGasLimits = new Gas(DEFAULT_TEARDOWN_DA_GAS_LIMIT, AVM_MAX_PROCESSABLE_L2_GAS);
 
     const gasSettings = new GasSettings(gasLimits, teardownGasLimits, GasFees.empty(), GasFees.empty());
 

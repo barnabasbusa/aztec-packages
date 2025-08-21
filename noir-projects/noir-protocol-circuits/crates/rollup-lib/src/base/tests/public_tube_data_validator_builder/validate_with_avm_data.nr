@@ -1,11 +1,7 @@
 use crate::base::components::PublicTubeDataValidator;
 use super::PublicTubeDataValidatorBuilder;
-use dep::types::{
-    abis::{
-        avm_circuit_public_inputs::AvmCircuitPublicInputs, gas_fees::GasFees,
-        gas_settings::GasSettings,
-    },
-    constants::MAX_L2_GAS_PER_TX_PUBLIC_PORTION,
+use dep::types::abis::{
+    avm_circuit_public_inputs::AvmCircuitPublicInputs, gas_fees::GasFees, gas_settings::GasSettings,
 };
 
 impl PublicTubeDataValidatorBuilder {
@@ -63,22 +59,6 @@ impl PublicTubeDataValidatorBuilder {
         builder.avm_data.set_public_teardown_call_request();
 
         builder
-    }
-
-    pub fn with_clamped_gas_limits(&mut self) -> Self {
-        let gas_used_in_private = self.tube_data.gas_used.l2_gas;
-
-        self.tube_data.tx_context.gas_settings.gas_limits.l2_gas =
-            gas_used_in_private + MAX_L2_GAS_PER_TX_PUBLIC_PORTION + 1;
-        self.avm_data.tx_context.gas_settings.gas_limits.l2_gas =
-            gas_used_in_private + MAX_L2_GAS_PER_TX_PUBLIC_PORTION;
-
-        self.tube_data.tx_context.gas_settings.teardown_gas_limits.l2_gas =
-            MAX_L2_GAS_PER_TX_PUBLIC_PORTION + 1;
-        self.avm_data.tx_context.gas_settings.teardown_gas_limits.l2_gas =
-            MAX_L2_GAS_PER_TX_PUBLIC_PORTION;
-
-        *self
     }
 
     pub fn equal_default_avm_gas_limits(self, gas_settings: GasSettings) -> bool {
@@ -177,8 +157,7 @@ fn public_tube_validate_with_avm_data_clamped_gas_limits_succeeds() {
 fn public_tube_validate_with_avm_data_mismatch_clamped_gas_limits_fails(
     avm_gas_settings: GasSettings,
 ) {
-    let mut builder =
-        PublicTubeDataValidatorBuilder::new_with_full_data().with_clamped_gas_limits();
+    let mut builder = PublicTubeDataValidatorBuilder::new_with_full_data();
 
     // Run the test only when the avm_gas_settings does not equal the default.
     if !builder.equal_default_avm_gas_limits(avm_gas_settings) {
