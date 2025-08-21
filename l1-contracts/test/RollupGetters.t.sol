@@ -148,7 +148,6 @@ contract RollupShouldBeGetters is ValidatorSelectionTestBase {
   }
 
   function test_getCurrentEpochCommittee() external setup(0, 48) {
-    return;
     // This test ensures that the addition of a lot of new validators
     // altering the size checkpoints do not heavily impact the gas costs.
     timeCheater.cheat__jumpForwardEpochs(2);
