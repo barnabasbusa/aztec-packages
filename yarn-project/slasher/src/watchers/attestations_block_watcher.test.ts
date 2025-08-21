@@ -17,7 +17,7 @@ import { type MockProxy, mock } from 'jest-mock-extended';
 import EventEmitter from 'node:events';
 
 import { DefaultSlasherConfig, type SlasherConfig } from '../config.js';
-import { WANT_TO_SLASH_EVENT, type WantToSlashArgs, type Watcher, type WatcherEmitter } from '../watcher.js';
+import { WANT_TO_SLASH_EVENT, type WantToSlashArgs } from '../watcher.js';
 import { AttestationsBlockWatcher } from './attestations_block_watcher.js';
 
 describe('AttestationsBlockWatcher', () => {

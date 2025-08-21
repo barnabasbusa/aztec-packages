@@ -3,7 +3,6 @@ import type { InitialAccountData } from '@aztec/accounts/testing';
 import type { AztecNodeService } from '@aztec/aztec-node';
 import {
   AztecAddress,
-  EthAddress,
   Fr,
   type Logger,
   ProvenTx,
@@ -14,12 +13,11 @@ import {
 } from '@aztec/aztec.js';
 import type { RollupCheatCodes } from '@aztec/aztec/testing';
 import type { RollupContract, ViemClient } from '@aztec/ethereum';
-import { timesAsync } from '@aztec/foundation/collection';
+import { timesAsync, unique } from '@aztec/foundation/collection';
 import type { EmpireSlashingProposerAbi } from '@aztec/l1-artifacts/EmpireSlashingProposerAbi';
 import type { SpamContract } from '@aztec/noir-test-contracts.js/Spam';
 import { TestContract, TestContractArtifact } from '@aztec/noir-test-contracts.js/Test';
 import { PXEService, createPXEService, getPXEServiceConfig as getRpcConfig } from '@aztec/pxe/server';
-import { OffenseType, type ValidatorSlash } from '@aztec/slasher';
 import type { SlashFactoryContract } from '@aztec/stdlib/l1-contracts';
 
 import type { GetContractReturnType } from 'viem';
@@ -155,12 +153,9 @@ export async function awaitCommitteeExists({
  * Currently assumes that the committee is the same size as the validator set.
  */
 export async function awaitCommitteeKicked({
-  offense,
-  epochOrSlot,
   rollup,
   cheatCodes,
   committee,
-  slashingAmount,
   slashFactory,
   slashingProposer,
   slashingRoundSize,
@@ -168,12 +163,9 @@ export async function awaitCommitteeKicked({
   logger,
   sendDummyTx,
 }: {
-  offense: OffenseType;
-  epochOrSlot: bigint;
   rollup: RollupContract;
   cheatCodes: RollupCheatCodes;
   committee: readonly `0x${string}`[];
-  slashingAmount: bigint;
   slashFactory: SlashFactoryContract;
   slashingProposer: GetContractReturnType<typeof EmpireSlashingProposerAbi, ViemClient>;
   slashingRoundSize: number;
@@ -181,26 +173,25 @@ export async function awaitCommitteeKicked({
   logger: Logger;
   sendDummyTx: () => Promise<void>;
 }) {
-  logger.info(`Waiting for slash payload to be deployed`);
-  const sortedCommittee = [...committee].sort((a, b) => a.localeCompare(b));
-  const expectedSlashes: ValidatorSlash[] = sortedCommittee.map(v => ({
-    validator: EthAddress.fromString(v),
-    amount: slashingAmount,
-    offenses: [{ epochOrSlot, offenseType: offense }],
-  }));
-  await retryUntil(
+  logger.info(`Advancing epochs so slash payload gets deployed`);
+  await cheatCodes.debugRollup();
+  await cheatCodes.advanceToNextEpoch();
+  await cheatCodes.advanceToNextEpoch();
+
+  // Await for the slash payload to be created and check that all committee members are slashed
+  const slashPayloadEvents = await retryUntil(
     async () => {
-      const { address, isDeployed } = await slashFactory.getAddressAndIsDeployed(expectedSlashes);
-      return address && isDeployed;
+      const events = await slashFactory.getSlashPayloadCreatedEvents();
+      return events.length > 0 ? events : undefined;
     },
-    'slash payload deployed',
-    60,
+    'slash payload created',
+    120,
     1,
   );
-
-  const slashPayloadEvents = await slashFactory.getSlashPayloadCreatedEvents();
   expect(slashPayloadEvents.length).toBe(1);
-  expect(slashPayloadEvents[0].slashes).toHaveLength(committee.length);
+
+  // The uniqueness check is needed since a validator may be slashed more than once on the same round (eg because they let two epochs be pruned)
+  expect(unique(slashPayloadEvents[0].slashes.map(slash => slash.validator.toString()))).toHaveLength(committee.length);
 
   const attestersPre = await rollup.getAttesters();
   expect(attestersPre.length).toBe(committee.length);

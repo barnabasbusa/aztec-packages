@@ -28,7 +28,8 @@ contract SlashFactory is ISlashFactory {
       ISlashFactory.SlashPayloadOffensesLengthMismatch(_validators.length, _offenses.length)
     );
 
-    (address predictedAddress, bytes32 salt, bool isDeployed) = getAddressAndIsDeployed(_validators, _amounts, _offenses);
+    (address predictedAddress, bytes32 salt, bool isDeployed) =
+      getAddressAndIsDeployed(_validators, _amounts, _offenses);
 
     if (isDeployed) {
       return IPayload(predictedAddress);
@@ -52,11 +53,11 @@ contract SlashFactory is ISlashFactory {
     return (predictedAddress, salt, isDeployed);
   }
 
-  function _computeSlashPayloadAddress(address[] memory _validators, uint96[] memory _amounts, uint128[][] memory _offenses)
-    internal
-    view
-    returns (address, bytes32)
-  {
+  function _computeSlashPayloadAddress(
+    address[] memory _validators,
+    uint96[] memory _amounts,
+    uint128[][] memory _offenses
+  ) internal view returns (address, bytes32) {
     bytes32 salt = keccak256(abi.encode(_validators, _amounts, _offenses));
 
     bytes memory constructorArgs = abi.encode(_validators, _amounts, VALIDATOR_SELECTION);

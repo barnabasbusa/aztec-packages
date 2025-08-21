@@ -147,8 +147,8 @@ export class AztecNodeService implements AztecNode, AztecNodeAdmin, Traceable {
     protected readonly l1ChainId: number,
     protected readonly version: number,
     protected readonly globalVariableBuilder: GlobalVariableBuilderInterface,
-    private readonly epochCache: EpochCacheInterface,
-    private readonly packageVersion: string,
+    protected readonly epochCache: EpochCacheInterface,
+    protected readonly packageVersion: string,
     private proofVerifier: ClientProtocolCircuitVerifier,
     private telemetry: TelemetryClient = getTelemetryClient(),
     private log = createLogger('node'),
@@ -339,25 +339,28 @@ export class AztecNodeService implements AztecNode, AztecNodeAdmin, Traceable {
 
     log.verbose(`All Aztec Node subsystems synced`);
 
-    const slasherClient = await createSlasher(
-      config,
-      config.l1Contracts,
-      getPublicClient(config),
-      watchers,
-      dateProvider,
-      epochCache,
-    );
-
-    await slasherClient?.start();
-
     // Validator enabled, create/start relevant service
     let sequencer: SequencerClient | undefined;
+    let slasherClient: SlasherClientInterface | undefined;
+
     if (!config.disableValidator) {
       // This shouldn't happen, validators need a publisher private key.
       const { publisherPrivateKey } = config;
       if (!publisherPrivateKey?.getValue() || publisherPrivateKey?.getValue() === NULL_KEY) {
         throw new Error('A publisher private key is required to run a validator');
       }
+
+      // We create a slasher only if we have a sequencer, since all slashing actions go through the sequencer publisher
+      // as they are executed when the node is selected as proposer.
+      slasherClient = await createSlasher(
+        config,
+        config.l1Contracts,
+        getPublicClient(config),
+        watchers,
+        dateProvider,
+        epochCache,
+      );
+      await slasherClient.start();
 
       const l1Client = createExtendedL1Client(
         config.l1RpcUrls,

@@ -1,11 +1,11 @@
 import { EthAddress } from '@aztec/foundation/eth-address';
-import { openTmpStore } from '@aztec/kv-store/lmdb';
+import { type AztecLMDBStoreV2, openTmpStore } from '@aztec/kv-store/lmdb-v2';
 import { type Offense, type OffenseIdentifier, OffenseType } from '@aztec/stdlib/slashing';
 
 import { SlasherOffensesStore } from './offenses_store.js';
 
 describe('SlasherOffensesStore', () => {
-  let kvStore: ReturnType<typeof openTmpStore>;
+  let kvStore: AztecLMDBStoreV2;
   let store: SlasherOffensesStore;
 
   const defaultSettings = {
@@ -13,8 +13,8 @@ describe('SlasherOffensesStore', () => {
     epochDuration: 32,
   };
 
-  beforeEach(() => {
-    kvStore = openTmpStore();
+  beforeEach(async () => {
+    kvStore = await openTmpStore('slasher-offenses-store-test');
     store = new SlasherOffensesStore(kvStore, defaultSettings);
   });
 

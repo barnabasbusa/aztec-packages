@@ -433,7 +433,7 @@ export class EmpireSlasherClient implements ProposerSlashActionProvider, Slasher
     // and only allow for new proposals to be created then. This ensures that no payloads are created that will
     // not be able to pass. The invariant here is that a payload can be created only if there are enough slots
     // left such that if half of the remaining votes are cast for it, then it will be able to pass.
-    const nominationPhaseDurationInSlots = BigInt((roundSize - quorumSize) / 2);
+    const nominationPhaseDurationInSlots = BigInt(Math.floor((roundSize - quorumSize) / 2));
 
     // Create our ideal payload from the pending offenses we have in store
     let idealPayload: Pick<SlashPayloadRound, 'slashes' | 'votes' | 'address'> | undefined = undefined;

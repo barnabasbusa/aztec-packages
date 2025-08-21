@@ -22,22 +22,14 @@ import { TallySlasherClient, type TallySlasherSettings } from './tally_slasher_c
 import type { Watcher } from './watcher.js';
 
 export async function createSlasher(
-  config: SlasherConfig & DataStoreConfig & { slasherEnabled?: boolean; ethereumSlotDuration: number },
+  config: SlasherConfig & DataStoreConfig & { ethereumSlotDuration: number },
   l1Contracts: Pick<L1ReaderConfig['l1Contracts'], 'rollupAddress' | 'slashFactoryAddress'>,
   l1Client: ViemClient,
   watchers: Watcher[],
   dateProvider: DateProvider,
   epochCache: EpochCache,
   logger = createLogger('slasher'),
-): Promise<SlasherClientInterface | undefined> {
-  if (!config.slasherEnabled) {
-    return undefined;
-  }
-
-  if (!config.dataDirectory) {
-    throw new Error('Slasher requires a data directory to store offenses and payloads');
-  }
-
+): Promise<SlasherClientInterface> {
   if (!l1Contracts.rollupAddress || l1Contracts.rollupAddress.equals(EthAddress.ZERO)) {
     throw new Error('Cannot initialize SlasherClient without a Rollup address');
   }
@@ -53,44 +45,23 @@ export async function createSlasher(
 
   // Create client based on configured type
   if (proposer.type === 'tally') {
-    return createTallySlasher(
-      config,
-      rollup,
-      proposer as TallySlashingProposerContract,
-      l1Client,
-      watchers,
-      dateProvider,
-      epochCache,
-      kvStore,
-      logger,
-    );
+    return createTallySlasher(config, rollup, proposer, watchers, dateProvider, epochCache, kvStore, logger);
   } else {
-    return createEmpireSlasher(
-      config,
-      rollup,
-      proposer as EmpireSlashingProposerContract,
-      l1Contracts,
-      l1Client,
-      watchers,
-      dateProvider,
-      kvStore,
-      logger,
-    );
+    const slashFactory = new SlashFactoryContract(l1Client, l1Contracts.slashFactoryAddress!.toString());
+    return createEmpireSlasher(config, rollup, proposer, slashFactory, watchers, dateProvider, kvStore, logger);
   }
 }
 
 async function createEmpireSlasher(
-  config: SlasherConfig & DataStoreConfig & { slasherEnabled?: boolean; ethereumSlotDuration: number },
+  config: SlasherConfig & DataStoreConfig & { ethereumSlotDuration: number },
   rollup: RollupContract,
   slashingProposer: EmpireSlashingProposerContract,
-  l1Contracts: Pick<L1ReaderConfig['l1Contracts'], 'rollupAddress' | 'slashFactoryAddress'>,
-  l1Client: ViemClient,
+  slashFactoryContract: SlashFactoryContract,
   watchers: Watcher[],
   dateProvider: DateProvider,
   kvStore: AztecLMDBStoreV2,
   logger = createLogger('slasher'),
 ): Promise<EmpireSlasherClient> {
-  const slashFactoryContract = new SlashFactoryContract(l1Client, l1Contracts.slashFactoryAddress!.toString());
   if (slashingProposer.type !== 'empire') {
     throw new Error('Slashing proposer contract is not of type Empire');
   }
@@ -138,7 +109,7 @@ async function createEmpireSlasher(
     settings,
     slashFactoryContract,
     slashingProposer,
-    l1Contracts.rollupAddress!,
+    EthAddress.fromString(rollup.address),
     watchers,
     dateProvider,
     offensesStore,
@@ -148,10 +119,9 @@ async function createEmpireSlasher(
 }
 
 async function createTallySlasher(
-  config: SlasherConfig & DataStoreConfig & { slasherEnabled?: boolean },
+  config: SlasherConfig & DataStoreConfig,
   rollup: RollupContract,
   slashingProposer: TallySlashingProposerContract,
-  l1Client: ViemClient,
   watchers: Watcher[],
   dateProvider: DateProvider,
   epochCache: EpochCache,
